@@ -1,12 +1,23 @@
 package com.example.damxat.Views.Fragments;
 
+import static android.app.Activity.RESULT_OK;
+
+import static com.example.damxat.Api.Constants.retrofit;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.speech.RecognizerIntent;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,8 +25,15 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import com.example.damxat.Adapter.RecyclerXatAdapter;
+import com.example.damxat.Api.ApiInterface;
+import com.example.damxat.Model.NotificationModel;
+import com.example.damxat.Model.PushNotification;
+import com.example.damxat.Model.ResponseModel;
 import com.example.damxat.Model.User;
 import com.example.damxat.Model.Xat;
 import com.example.damxat.Model.XatGroup;
@@ -31,6 +49,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 public class XatFragment extends Fragment {
 
@@ -42,6 +61,9 @@ public class XatFragment extends Fragment {
     Boolean isXatUser;
     ArrayList<Xat> arrayXats;
     ArrayList<String> arrayUsers;
+    private int RecordAudioRequestCode = 1;
+    private EditText txtMessage;
+    private String userToken;
 
     XatGroup group;
     String groupName;
@@ -72,9 +94,17 @@ public class XatFragment extends Fragment {
             readGroupMessages(groupName);
         }
 
+        // The permission to record
+        if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.RECORD_AUDIO}, RecordAudioRequestCode);
+            }
+        }
 
+        // Elements of the view
         ImageButton btnMessage = view.findViewById(R.id.btnMessage);
-        EditText txtMessage = view.findViewById(R.id.txtMessage);
+        txtMessage = view.findViewById(R.id.txtMessage);
+        ImageButton btnVoice = view.findViewById(R.id.btnVoice);
 
         // This on click sends a message, it checks if it's empty or not and in case it's not it sets the message to the one written
         btnMessage.setOnClickListener(new View.OnClickListener() {
@@ -84,6 +114,7 @@ public class XatFragment extends Fragment {
 
                 if(!msg.isEmpty()){
                     sendMessage(firebaseUser.getUid(), msg, isXatUser);
+                    sendNotification(firebaseUser.getDisplayName(), msg, userToken);
                 }else{
                     Toast.makeText(getContext(), "You can't send empty message", Toast.LENGTH_SHORT).show();
                 }
@@ -91,7 +122,45 @@ public class XatFragment extends Fragment {
             }
         });
 
+        // This button allows you to send a voice message
+        btnVoice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+                speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hola, digues quelcom!");
+                startActivityForResult(speechRecognizerIntent, RecordAudioRequestCode);
+            }
+        });
+
         return view;
+    }
+
+    // Analize asked permission result
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RecordAudioRequestCode && grantResults.length > 0 ){
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                Toast.makeText(getContext(),"Permission Granted",Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Analize the recorded information
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RecordAudioRequestCode && resultCode == RESULT_OK && data != null) {
+            ArrayList<String> result=data.getStringArrayListExtra( RecognizerIntent.EXTRA_RESULTS );
+            if(!result.get(0).isEmpty()){
+                sendMessage(firebaseUser.getUid(), result.get(0), isXatUser);
+                sendNotification(firebaseUser.getDisplayName(), result.get(0), userToken);
+            }else{
+                Toast.makeText(getContext(), "You can't send empty message", Toast.LENGTH_SHORT).show();
+            }
+            txtMessage.setText("");
+        }
     }
 
     // Gets the xat user and checks if there is a user, saves it and changes the action bar title
@@ -111,8 +180,8 @@ public class XatFragment extends Fragment {
 
                     // You set the title of the action bar as the user's username
                     ((MainActivity) getActivity()).getSupportActionBar().setTitle(user.getUsername());
-
-                    //Comentar
+                    userToken = user.getToken();
+                    // Calls the function read user messages
                     readUserMessages();
                 }
 
@@ -124,7 +193,23 @@ public class XatFragment extends Fragment {
         }
     }
 
+    public void sendNotification(String title, String missatge, String token) {
+        NotificationModel notification = new NotificationModel(title, missatge, "");
+        PushNotification pushNotification = new PushNotification(token, notification);
+        ApiInterface apiCall = retrofit.create(ApiInterface.class);
+        Call<ResponseModel> call = apiCall.postNotification(pushNotification);
 
+        call.enqueue(new Callback<ResponseModel>() {
+            @Override
+            public void onResponse(Call<ResponseModel> call, Response<ResponseModel> response) {
+            }
+
+            @Override
+            public void onFailure(Call<ResponseModel> call, Throwable t) {
+
+            }
+        });
+    }
 
     public void sendMessage(String sender, String message, boolean isXatUser){
         // If there is a xat user then it creates a new xat and pushes the value in firebase

@@ -1,5 +1,8 @@
 package com.example.damxat.Views.Activities;
 
+import static android.content.ContentValues.TAG;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
@@ -10,17 +13,21 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 
 import com.example.damxat.R;
 import com.example.damxat.Views.Fragments.GroupsFragment;
 import com.example.damxat.Views.Fragments.MyXatsFragment;
 import com.example.damxat.Views.Fragments.UserFragment;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.HashMap;
 
@@ -69,6 +76,38 @@ public class MainActivity extends AppCompatActivity {
 
             return true;
         });
+
+        manageFirebaseToken();
+    }
+
+    // Get the token from the firebase messaging
+    private void manageFirebaseToken() {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (!task.isSuccessful()) {
+                            Log.i(TAG, "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+
+                        // Get new FCM registration token
+                        String token = task.getResult();
+                        setToken(token);
+
+                        Log.i(TAG, "TOKEN: "+token);
+                        //Toast.makeText(MainActivity.this, token, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void setToken(String token) {
+        // Here we get the reference to the Users collection from firebase and then set the status for a user
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Users").child(firebaseUser.getUid());
+
+        HashMap<String, Object> hashMap = new HashMap<>();
+        hashMap.put("token", token);
+        ref.updateChildren(hashMap);
     }
 
     private void status(String status){

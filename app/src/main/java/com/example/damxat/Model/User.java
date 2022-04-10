@@ -5,10 +5,18 @@ public class User {
     String id;
     String username;
     String status;
+    String token;
 
     public User(String id, String username, String status) {
         this.id = id;
         this.username = username;
+    }
+
+    public User(String id, String username, String status, String token) {
+        this.id = id;
+        this.username = username;
+        this.status = status;
+        this.token = token;
     }
 
     public User() {
@@ -28,5 +36,13 @@ public class User {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

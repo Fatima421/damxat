@@ -5,6 +5,19 @@
       <map>
         <entry key="..\:/Users/marta/AndroidStudioProjects/DAMXAT/app/src/main/res/drawable/background_xat_left.xml" value="0.14322916666666666" />
         <entry key="..\:/Users/marta/AndroidStudioProjects/DAMXAT/app/src/main/res/drawable/input.xml" value="0.1" />
+        <entry key="app/src/main/res/drawable-v24/voice_off.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/drawable-v24/voice_on.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/drawable/ic_add.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/drawable/ic_chat.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/drawable/ic_send.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/drawable/input.xml" value="0.33645833333333336" />
+        <entry key="app/src/main/res/layout/activity_login.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/activity_main.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/activity_register.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/activity_voice_recording.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/dialog_group.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/fragment_my_xats.xml" value="0.3203125" />
+        <entry key="app/src/main/res/layout/fragment_xat.xml" value="0.5" />
         <entry key="app/src/main/res/layout/item_user.xml" value="0.3203125" />
       </map>
     </option>
